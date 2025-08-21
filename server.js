@@ -18,7 +18,10 @@ app.use((req, res, next) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);
-app.use('/uploads', express.static('uploads'));
+
+
+// Serve static files from the "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 ///////////////////////////multer/////////////////////////////////////////////////
 
@@ -44,10 +47,9 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
-
 
 
 

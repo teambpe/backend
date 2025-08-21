@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-
 const upload = require('../multer');
-
-
 
 router.post('/userlogin', (req, res) => {
   console.log('📊 /userlogin route hit');
@@ -164,9 +161,9 @@ router.post('/login', (req, res) => {
 
  // POST /api/visitors/save
 router.post('/save', upload.single('image'), (req, res) => {
-  console.log('--- Incoming /save request ---');
-  console.log('Body:', req.body);
-  console.log('File:', req.file);
+   console.log('📊 / route hit');
+   console.log('📩 Body:', req.body);
+  console.log('📷 File:', req.file);
 
   const { name, email, phone, company, designation, program } = req.body;
 
@@ -187,7 +184,7 @@ router.post('/save', upload.single('image'), (req, res) => {
       console.error('❌ DB Insert Error:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
-
+        
     return res.status(200).json({
       success: true,
       message: 'Visitor saved successfully',
@@ -198,13 +195,16 @@ router.post('/save', upload.single('image'), (req, res) => {
 
 // POST /upload
 router.post('/upload', upload.single('image'), (req, res) => {
+  
+
   console.log('Uploaded file:', req.file);
 
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' });
   }
+ 
 
-  const imageUrl = `http://198.168.10.53:3000/uploads/${req.file.filename}`;
+  const imageUrl = `http://198.168.10.78:3000/uploads/${req.file.filename}`;
   res.status(200).json({ success: true, imageUrl });
 });
 
