@@ -6,8 +6,8 @@ const visitorRoutes = require('./routes/visitors');
 const db = require('./db'); 
 const app = express();
 const PORT = 3000;
-const multer = require('multer');
-const path = require('path');
+//const multer = require('multer');
+//const path = require('path');
 
 app.use(express.json());
 app.use(cors());
@@ -21,7 +21,7 @@ app.use('/api/visitors', visitorRoutes);
 
 
 // Serve static files from the "uploads" directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 ///////////////////////////multer/////////////////////////////////////////////////
 
