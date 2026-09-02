@@ -3,37 +3,83 @@ const router = express.Router();
 const db = require('../db');
 const upload = require('../multer');
 
+
+
+
+
+
+router.post('/save', (req, res) => {
+  console.log("📩 /save Body:", req.body);
+
+  const { name, email, phone, company, designation, program, image, user_id , requirement } = req.body;
+
+  const sql = `
+    INSERT INTO visitors 
+    (user_id, name, email, phone, company, designation, program, image,requirement)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)
+  `;
+
+  const values = [
+    user_id,
+    name,
+    email,
+    phone,
+    company,
+    designation,
+    program,
+    image,
+    requirement
+  ];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.log("❌ INSERT ERROR:", err);
+      return res.status(500).json({ success: false });
+    }
+
+    console.log("✅ INSERTED visitor id:", result.insertId);
+
+    return res.json({
+      success: true,
+      id: result.insertId,
+    });
+  });
+});
+
 router.post('/userlogin', (req, res) => {
   console.log('📊 /userlogin route hit');
-  const { emailOrPhone, password } = req.body;
 
-  if (!emailOrPhone || !password) {
-    return res.status(400).json({ success: false, message: 'Email/Phone and password are required' });
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required' });
   }
 
-  // check with email or phone
-  db.query(
-    'SELECT * FROM userlogin WHERE email = ? ',
-    [emailOrPhone, emailOrPhone],
-    (err, result) => {
-      if (err) {
-        console.log('❌ SELECT error:', err);
-        return res.status(500).json({ error: 'DB error' });
-      }
-
-      if (result.length === 0) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
-      }
-
-      const user = result[0];
-      if (user.password !== password) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
-      }
-
-      res.json({ success: true, message: 'Login successful', user });
+  // ✅ check by email only
+  db.query('SELECT * FROM userlogin WHERE email = ?', [email], (err, result) => {
+    if (err) {
+      console.error('❌ SELECT error:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
     }
-  );
+
+    if (result.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    const user = result[0];
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    console.log('✅ Login successful for:', user.email);
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user,
+    });
+  });
 });
+
 
 router.post('/usersignup', (req, res) => {
   console.log('📊 /usersignup route hit');
@@ -158,65 +204,8 @@ router.post('/login', (req, res) => {
     res.json({ success: true, message: 'Login successful' });
   });
 });
-// POST /api/visitors/save
-router.post('/save', (req, res) => {
-  console.log('📊 /save route hit');
-  console.log('📩 Body:', req.body);
 
-  const { name, email, phone, company, designation, program, image } = req.body;
 
-  if (!name || !email || !phone || !program) {
-    return res.status(400).json({ success: false, message: 'Required fields missing' });
-  }
-
-  // Save the OCR text in `image` column
-  const sql = `
-    INSERT INTO visitors (name, email, phone, company, designation, program, image)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-  const values = [
-    name,
-    email,
-    phone,
-    company || '',
-    designation || '',
-    program,
-    image || ''  // full OCR text here
-  ];
-
-  db.query(sql, values, (err, result) => {
-    if (err) {
-      console.error('❌ DB Insert Error:', err);
-      return res.status(500).json({ success: false, message: 'Database error' });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Visitor saved successfully',
-      id: result.insertId,
-    });
-  });
-});
-
-// routes/visitorRoutes.js
-
-router.get('/', async (req, res) => {
-  console.log('📊 / route hit');
-  try {
-    const sql = 'SELECT * FROM visitors'; // DESC removed
-    db.query(sql, (err, results) => {
-      if (err) {
-        console.error('❌ Error fetching data:', err);
-        return res.status(500).json({ message: 'Server error' });
-      }
-
-      res.status(200).json({ visitors: results });
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server exception' });
-  }
-});
 
 router.get('/program', (req, res) => {
   const query = `
@@ -319,6 +308,65 @@ router.post('/programonly', (req, res) => {
     return res.status(200).json({ success: true, message: 'Program saved successfully' });
   });
 });
+
+router.get('/total/:user_id', (req, res) => {
+  const userId = req.params.user_id;
+  console.log(`📊 /total/:user_id hit for user ${userId}`);
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'User ID required' });
+  }
+
+  const query = 'SELECT COUNT(*) AS total FROM visitors WHERE user_id = ?';
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error('❌ Total count error:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    const total = results[0]?.total || 0;
+    console.log('🚀 Total Visitors Count for user:', total);
+
+    res.json({
+      success: true,
+      total,
+    });
+  });
+});
+
+router.get('/program/:user_id', (req, res) => {
+  const userId = req.params.user_id;
+  console.log(`📊 /program/:user_id hit for user ${userId}`);
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'User ID required' });
+  }
+
+  const query = `
+    SELECT program, COUNT(*) AS count
+    FROM visitors
+    WHERE user_id = ?
+    GROUP BY program
+  `;
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error('❌ Program stats error:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    res.json({
+      success: true,
+      data: results,
+    });
+  });
+});
+
+
+
+
+
 router.get('/select', (req, res) => {
   console.log('📥 Hit /select route');
   const sql = 'SELECT idprogram AS id, program AS name FROM program ORDER BY program ASC';
@@ -384,4 +432,107 @@ router.delete('/program/:id', (req, res) => {
     res.json({ message: 'Program deleted successfully' });
   });
 });
+
+router.get('/user/:user_id', (req, res) => {
+  const userId = req.params.user_id;
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  const sql = "SELECT * FROM visitors WHERE user_id = ? ORDER BY created_at DESC";
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching user visitors:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    return res.status(200).json({ visitors: results });
+  });
+});
+
+// GET old visitors for a specific user
+router.get("/old/:user_id", (req, res) => {
+  const userId = req.params.user_id;
+  console.log(`📥 /old/:user_id hit with userId: ${userId}`);
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  const sql = `
+    SELECT *
+    FROM visitors
+    WHERE user_id = ?
+      AND created_at <= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY created_at DESC
+  `;
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching old visitors:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    console.log(`✅ Old visitors fetched for userId ${userId}: ${results.length} records`);
+    res.status(200).json({ oldVisitors: results });
+  });
+});
+
+
+
+router.get('/allvisitor', async (req, res) => {
+  console.log('📊 / route hit');
+  try {
+    const sql = 'SELECT * FROM visitors'; // DESC removed
+    db.query(sql, (err, results) => {
+      if (err) {
+        console.error('❌ Error fetching data:', err);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
+      res.status(200).json({ visitors: results });
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server exception' });
+  }
+});
+
+// GET all users (for dropdown in admin filter)
+router.get('/fetch', (req, res) => {
+  const sql = 'SELECT id, name, email FROM userlogin ORDER BY name ASC';
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('❌ Error fetching users:', err);
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+
+    res.status(200).json({ users: results });
+  });
+});
+
+
+router.get('/total', (req, res) => {
+   console.log('📊 /total route hit');
+  const query = 'SELECT COUNT(*) AS total FROM visitors';
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Total count error:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    const total = results[0]?.total || 0;
+      console.log('🚀 Total Visitors Count:', total);
+
+    res.json({
+      success: true,
+      total,
+    });
+  });
+});
+
+
 module.exports = router;    

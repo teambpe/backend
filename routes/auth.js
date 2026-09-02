@@ -8,8 +8,8 @@ const upload = multer({ dest: 'uploads/' });
 
 // Get all users
 router.get('/users', (req, res) => {
-   console.log('📊 /showuser route hit', req.query);
-  db.query('SELECT id, name, email, phone FROM userlogin', (err, result) => {
+   console.log('📊 /user route hit', req.query);
+  db.query('SELECT id, name, email, phone,password FROM userlogin', (err, result) => {
     if (err) return res.status(500).json({ error: 'DB error' });
     res.json(result);
   });
