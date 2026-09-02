@@ -5,7 +5,7 @@ const authRoutes = require('./routes/auth');
 const visitorRoutes = require('./routes/visitors');
 const db = require('./db'); 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 //const multer = require('multer');
 //const path = require('path');
 
